@@ -23,17 +23,17 @@ variables_to_follow = [
 #    'RT_IGNITIONADVANCEBANK1',
 #    'RT_TPSVSSPEEDIGN+TRIM1',
 #    'RT_INJECTIONTIMEA',
-#    'RT_COOLANTTEMP1(LIM)',
-#    'RT_AIRTEMP1(LIM)',
+    'RT_COOLANTTEMP1(LIM)',
+    'RT_AIRTEMP1(LIM)',
 #    'RT_MAPPINGPOT1LIM',
 #    'RT_MAPPINGPOT2LIM',
 #    'RT_COOLANTFUELFACTOR',
-#    'RT_BATTERYVOLTAGE(LIM)',
+    'RT_BATTERYVOLTAGE(LIM)',
 #    'RT_AIRTEMPFUELFACTOR',
 #    'RT_DUTYCYCLEA',
 #    'RT_TPSFUEL+TRIMBANK1',
-#    'RT_SOFTCUTTIME',
-#    'RT_HARDCUTTIME',
+    'RT_SOFTCUTTIME',
+    'RT_HARDCUTTIME',
 #    'RT_THROTTLEANGLE1(RAW)',
 #    'RT_ENGINERUNTIME',
 ##    'RT_ECUSTATUS',
@@ -48,8 +48,8 @@ def main():
 	parser = argparse.ArgumentParser(prog='mbepcap2txt', description='Takes an pcap with ISOTP formatted MBE transactions and makes it human readable.')
 	parser.add_argument('--interface',     '-i',                   help='The can interface to open', required=True)
 	parser.add_argument('--variables',     '-v',                   help='Input MBE variables filename', required=True)
-	parser.add_argument('--query_id',      '-q',                   help='CAN query ID (default 0x0cbe1101)', default='0x0cbe1101')
-	parser.add_argument('--response_id',   '-r',                   help='CAN resdponse ID (default 0x0cbe0111', default='0x0cbe0111')
+	parser.add_argument('--query_id',      '-q',                   help='CAN query ID (default 0x0cbe1101)', default=0x0cbe1101)
+	parser.add_argument('--response_id',   '-r',                   help='CAN resdponse ID (default 0x0cbe0111', default=0x0cbe0111)
 	parser.add_argument('--loglevel',      '-l',                   help='Logging level to show', choices=['INFO','DEBUG','WARNING', 'ERROR', 'NONE'], default="ERROR")
 	parser.add_argument('--logfile',       '-f',                   help='If set logging will be sent to this file')
 	parser.add_argument('--version',       '-V', action='version', version='%(prog)s '+version)
