@@ -153,14 +153,14 @@ class mbe():
 		for i, val in enumerate(self.ecu_vars_to_follow[page]):
 			# Make sure this isn't a duplicate
 
-			if (self.ecu_vars_to_follow[page][i]['lsb'] == lsb):
+			if (val['lsb'] == lsb):
 				logging.warning(f"Unable to add {name} as duplicate")
 				return False
 
 			insert_position = i + 1
-			logging.debug(f"Checking:{i} {int(lsb,16)} ({lsb}) {int(self.ecu_vars_to_follow[page][i]['lsb'],16)} ({self.ecu_vars_to_follow[page][i]['lsb']})")
+			logging.debug(f"Checking:{i} {int(lsb,16)} ({lsb}) {int(val['lsb'],16)} ({val['lsb']})")
 
-			if (int(self.ecu_vars_to_follow[page][i]['lsb'],16) > int(lsb,16)):
+			if (int(val['lsb'],16) > int(lsb,16)):
 				insert_position = i
 				#logging.info(f"Adding {lsb} at position {insert_position}, before {self.ecu_vars_to_follow[page][i]['lsb']}")
 				break
@@ -277,10 +277,7 @@ class mbe():
 
 			# If there's already an entry for this variable in the results array then just update the value
 			# Otherwise add a new entry to the results dictionary
-			for var, result in page_results.items():
-				#logging.debug(pprint.pformat(result))
-				name = result['name']
-				
+			for name, result in page_results.items():
 				if( name in results):
 					results[name]['value'] = result['value']
 				else:
