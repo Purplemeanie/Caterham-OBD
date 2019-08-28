@@ -4,16 +4,21 @@
 # 2019-08-26 John Martin
 #
 
-''' Some sample data of a car running '''
-sample_data = [
-  {'request':'0100000000f83031363744454c4d4e4f50515a5b5c5d646a6b7c7d9e9fa0a1d8d9dadb', 'response':'81bc5c9d45fe548a4e7085bc5c7417f2799eb04fc409e8af8e0500800080'},
-  {'request':'0100000000f9babbbcbd',                                                   'response':'81781edc1e'},
-  {'request':'0100000000fa64656c',                                                     'response':'81482458'},
-  {'request':'0100000000fd202425264042434d',                                           'response':'81a900000180b00040'},
-  {'request':'0100000000126667a8a9',                                                   'response':'81746b1600'},
-  {'request':'01000000001a525c5d',                                                     'response':'81846e12'},
-  {'request':'0100000000e2cccdcecf',                                                   'response':'81ffffff07'}
-]
+# Some sample data of a car running 
+# sample_data = [
+#  {'request':'0100000000f83031363744454c4d4e4f50515a5b5c5d646a6b7c7d9e9fa0a1d8d9dadb', 'response':'81bc5c9d45fe548a4e7085bc5c7417f2799eb04fc409e8af8e0500800080'},
+#  {'request':'0100000000f9babbbcbd',                                                   'response':'81781edc1e'},
+#  {'request':'0100000000fa64656c',                                                     'response':'81482458'},
+#  {'request':'0100000000fd202425264042434d',                                           'response':'81a900000180b00040'},
+#  {'request':'0100000000126667a8a9',                                                   'response':'81746b1600'},
+#  {'request':'01000000001a525c5d',                                                     'response':'81846e12'},
+#  {'request':'0100000000e2cccdcecf',                                                   'response':'81ffffff07'}
+#]
+
+test_mode = True # Turns off calls to isotp layer and uses simple test data
+
+if (test_mode):
+	response_data = {'0xf8' : b'\x81\xe7\x49\x21\x53\x00\x00\x3e\x97', '0xf9' : b'\x81\x78\x1e\xdc\x1e'}
 
 import logging
 import json
@@ -25,18 +30,16 @@ import isotp
 
 version = "0.1"
 
-#log = logging.getLogger( 'python-mbe' )
-#logging.setLevel( logging.DEBUG )
-
 class mbe():
 	# Initialize class using a filename to load json ec2 definitions and tx(query) and rx(response) CAN id's
 	def __init__(self):
-		self.ecu_variables = None
-		self.ecu_mappings = None
-		self.ecu_vars_to_follow = None
+		self.ecu_variables = dict()
+		self.ecu_mappings = dict()
+		self.ecu_vars_to_follow = dict()
 		self.interface = "can0"
 		self.rxid = 0x0cbe0111
 		self.txid = 0x0cbe1101
+		logging.info(f"Test mode is {test_mode}")
 
 	def set_options(self, filename, txid=0x0cbe1101, rxid=0x0cbe0111, interface="can0"):
 		self.ecu_variables = self.load_mbe_variables_from_json(filename)
@@ -91,7 +94,7 @@ class mbe():
 			LSBstring = variables[i]['address'][-2:]
 			page = variables[i]['page']
 			# Check if we already have a page entry
-			if (not LSBstring in mapping[page]):
+			if (not page in mapping):
 				mapping[page] = dict()
 			mapping[page][LSBstring] = {'name':variables[i]['name'], 'bytes':variables[i]['bytes']}
 
@@ -107,9 +110,10 @@ class mbe():
 				break
 
 	def bind(self):
-		self.socket = isotp.socket()
-		self.socket.set_opts(0x480, frame_txtime=0) # 0x400 NOFLOW_MODE, 0x80 FORCESTMIN
-		self.socket.bind("can0", isotp.Address(isotp.AddressingMode.Normal_29bits, rxid=self.rxid, txid=self.txid))
+		if (not test_mode):
+			self.socket = isotp.socket()
+			self.socket.set_opts(0x480, frame_txtime=0) # 0x400 NOFLOW_MODE, 0x80 FORCESTMIN
+			self.socket.bind("can0", isotp.Address(isotp.AddressingMode.Normal_29bits, rxid=self.rxid, txid=self.txid))
 
 		return True
 
@@ -253,18 +257,19 @@ class mbe():
 			command = self.create_data_request(page, self.ecu_vars_to_follow[page])
 			logging.info(pprint.pformat(command))
 
-			self.socket.send(command)
+			if (test_mode):
+				# Some dummy data for RT_ENGINESPEED
+				response = response_data[page]
+			else:
+				self.socket.send(command)
 
-			try:
-				response = self.socket.recv()
-			except:
-				logging.error("Unable to receive from socket")
+				try:
+					response = self.socket.recv()
+				except:
+					logging.error("Unable to receive from socket")
 
 			if(response == None):
 				break
-
-			# Some dummy data for RT_ENGINESPEED
-			# response = b'\x81\x34\x12'
 
 			page_results = self.process_data_response(response, self.ecu_vars_to_follow[page])
 			if (not page_results):
