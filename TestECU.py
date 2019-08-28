@@ -59,7 +59,9 @@ def main():
 	logging_level = getattr(logging, args.loglevel, None)
 	logging.basicConfig(level=logging_level, filename=args.logfile, filemode='w')
 
-	ecu = mbe(args.variables, args.query_id, args.response_id, args.interface)
+	ecu = mbe()
+	
+	mbe.set_options(args.variables, args.query_id, args.response_id, args.interface)
 
 	#ecu.log_variables(2)
 	#ecu.log_pages(2)
@@ -74,43 +76,6 @@ def main():
 	results = dict()
 	if (ecu.process_all_pages(results) != False):
 		logging.debug(pprint.pformat(results))
-
-	# stdscr = curses.initscr()
-	# # set screen attributes
-	# stdscr.nodelay(1) # this is used to make input calls non-blocking
-	# curses.cbreak()
-	# stdscr.keypad(1)
-	# curses.curs_set(0)     # no annoying mouse cursor
-
-	# rows, cols = stdscr.getmaxyx()
-	# logging.debug(f"{rows}, {cols}")
-
-	# curses.start_color()
-	# curses.noecho()
-
-	# # create color pair's 1 and 2
-	# curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
-	# curses.init_pair(2, curses.COLOR_CYAN, curses.COLOR_BLACK)
-	# curses.init_pair(3, curses.COLOR_BLACK, curses.COLOR_CYAN)
-
-	# window = curses.newwin(rows-1, cols-1,1, 1)
-	# window.clear()
-	# window.box()
-	# window.addstr(2, 2, "Testing")
-	# window.addstr(3, 2, f"{pprint.pformat(results)}")
-
-	# #window.noutrefresh()
-	# #curses.doupdate()
-	# window.refresh()
-
-	# c = ''
-	# while(c != ord('q')):
-	# 	c = stdscr.getch()
-
-	# curses.nocbreak()
-	# stdscr.keypad(0)
-	# curses.echo()
-	# curses.endwin()
 
 if __name__ == '__main__':
 	main()
