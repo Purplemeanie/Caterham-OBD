@@ -108,14 +108,14 @@ def process_data_response(data, request_command, variables):
 		response_count = response_count + 1
 
 		if(variable != None):
-		  scale = float(variable['scale_maximum']) - float(variable['scale_minimum'])
-		  dividend = (2 ** (int(variable['bytes']) * 8)) - 1
-		  response_int = int(response_data,16)
-		  response_scaled = ((float(response_int * scale)) / float(dividend)) + float(variable['scale_minimum'])
-		  offset = float(variable['scale_minimum'])
-		  print(f"{command['name']}={response_scaled:.5} {variable['units']} ({variable['short_desc']} ) [0x{response_data}={int('0x'+response_data, 16)}, Scale:{scale}, Div:{dividend}, Offset:{offset:4}]")
+			scale = float(variable['scale_maximum']) - float(variable['scale_minimum'])
+			dividend = (2 ** (int(variable['bytes']) * 8)) - 1
+			response_int = int(response_data,16)
+			response_scaled = ((float(response_int * scale)) / float(dividend)) + float(variable['scale_minimum'])
+			offset = float(variable['scale_minimum'])
+			print(f"{command['name']}={response_scaled:.5} {variable['units']} ({variable['short_desc']} ) [0x{response_data}={int('0x'+response_data, 16)}, Scale:{scale}, Div:{dividend}, Offset:{offset:4}]")
 		else:
-		  print(f"{command['name']}: 0x{response_data}, {int('0x'+response_data, 16)}")
+			print(f"{command['name']}: 0x{response_data}, {int('0x'+response_data, 16)}")
 	return None
 
 def main():
