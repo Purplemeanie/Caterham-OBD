@@ -34,7 +34,7 @@ def load_mbe_variables(filename):
 	variables = dict()
 	variables = json.load(f)
 	#for v in variables:
-	#    print(v['name'])
+	#    logging.debug(v['name'])
 	return variables
 
 def create_page_reverse_mapping(variables):
@@ -58,12 +58,12 @@ def process_data_request_command(data, mapping):
 		return None
 	# Get the page number
 	page = data[10:12]
-	print(f"This is a command request for data in page: {page} ...")
+	logging.debug(f"This is a command request for data in page: {page} ...")
 	# Iterate through the remaining message and lookup the number of bytes to extract in the response
 	i = 12
 	while(i < data_length):
 		byte = data[i:i+2]
-		#print(f"{byte} ")
+		#logging.debug(f"{byte} ")
 		try:
 			mapped = mapping["0x"+page][byte]
 		except:
@@ -72,7 +72,7 @@ def process_data_request_command(data, mapping):
 		#pprint.pprint(mapped)
 		command_structure.append(mapped)
 		i = i + (int(bytes) * 2)
-	pprint.pprint(command_structure)
+	logging.debug(pprint.pformat(command_structure))
 	return command_structure
 
 def process_data_response(data, request_command, variables):
@@ -82,23 +82,23 @@ def process_data_response(data, request_command, variables):
 		return None
 	i = 2
 	response_count = 1
-	print(f"This is a command response for data...")
+	logging.debug(f"This is a command response for data...")
 	for command in request_command:
-		print(f"\nResponse: {response_count}")
+		logging.debug(f"\nResponse: {response_count}")
 
 		variable = None
 
 		response_data = ""
 		if (command['name'] != "UNKNOWN"):
-			print(f"This is the variable info for {command['name']}")
+			logging.debug(f"This is the variable info for {command['name']}")
 			variable = variables[command['name']]
-			pprint.pprint(variable)
+			logging.debug(pprint.pformat(variable))
 			bytes = int(command['bytes'])
 			for y in range (0,bytes):
 				byte = data[i+(y*2):(i+(y*2))+2]
 				response_data = str(byte) + str(response_data)
 		else:
-			print(f"There is no EC2 variable for {command['name']}")
+			logging.debug(f"There is no EC2 variable for {command['name']}")
 			bytes = int(command['bytes'])
 			for y in range (0,bytes):
 				byte = data[i+(y*2):(i+(y*2))+2]
@@ -113,7 +113,7 @@ def process_data_response(data, request_command, variables):
 		  response_int = int(response_data,16)
 		  response_scaled = ((float(response_int * scale)) / float(dividend)) + float(variable['scale_minimum'])
 		  offset = float(variable['scale_minimum'])
-		  print(f"{command['name']}={response_scaled:.5} {variable['units']} ({variable['short_desc']} ) [0x{response_data}={int('0x'+response_data, 16)}, Scale:{scale}, Div:{dividend}, Offset:{offset:.3}]")
+		  print(f"{command['name']}={response_scaled:.5} {variable['units']} ({variable['short_desc']} ) [0x{response_data}={int('0x'+response_data, 16)}, Scale:{scale}, Div:{dividend}, Offset:{offset:4}]")
 		else:
 		  print(f"{command['name']}: 0x{response_data}, {int('0x'+response_data, 16)}")
 	return None
@@ -122,12 +122,20 @@ def main():
 	# Setup and parse command line args
 	parser = argparse.ArgumentParser(prog='mbepcap2txt', description='Takes an pcap with ISOTP formatted MBE transactions and makes it human readable.')
 	parser.add_argument('--input',         '-i',                   help='Input pcap filename', required=True)
+	parser.add_argument('--can',           '-c',                   help='Display raw can data', action='store_true', default=False)
+	parser.add_argument('--isotp',         '-I',                   help='Display raw isotp data', action='store_true', default=False)
+	parser.add_argument('--mbe',           '-m',                   help='DON\'T Display mbe decoded data', action='store_false', default=True)
 	parser.add_argument('--variables',     '-v',                   help='Input MBE variables filename', required=True)
 	parser.add_argument('--query_id',      '-q',                   help='CAN query ID (default 0x0cbe1101)', default='0x0cbe1101')
-	parser.add_argument('--response_id',   '-r',                   help='CAN resdponse ID (default 0x0cbe0111', default='0x0cbe0111')
+	parser.add_argument('--response_id',   '-r',                   help='CAN resdponse ID (default 0x0cbe0111)', default='0x0cbe0111')
+	parser.add_argument('--loglevel',      '-l',                   help='Logging level to show', choices=['INFO','DEBUG','WARNING', 'ERROR', 'NONE'], default="INFO")
+	parser.add_argument('--logfile',       '-f',                   help='If set logging will be sent to this file')
 	parser.add_argument('--version',       '-V', action='version', version='%(prog)s '+version)
 
 	args = parser.parse_args()
+
+	logging_level = getattr(logging, args.loglevel, None)
+	logging.basicConfig(level=logging_level, filename=args.logfile, filemode='w')
 
 	if args.input == None:
 		parser.print_help()
@@ -153,42 +161,75 @@ def main():
 			has_isotp = False
 
 		if (not ((has_can) and (has_isotp))):
-			print("Bummer, not a can/iso15765 packet")
-			pprint.pprint(pkt.layers)
+			logging.debug("Bummer, not a can/iso15765 packet")
+			logging.debug(pprint.pformat(pkt.layers))
 			continue
 
 		can_id = pkt.can.id
 
 		if(can_id != args.query_id and can_id != args.response_id):
-	  		print("This isn't a packet we're interested in")
+	  		logging.debug("This isn't a packet we're interested in")
 	  		continue
 
 		data = pkt.data.data
 		# Message Types: 0x00=Single Frame, 0x01=First Frame, 0x02=Consecutive Frame
 		message_type = int(pkt.iso15765.message_type[2:])
 		try:
-			fragment_count = pkt.iso15765.fragment_count
+			fragment_count = int(pkt.iso15765.fragment_count)
 		except:
-			fragment_count = None
+			fragment_count = 0
 
-		print(f"### PCAP Packet {i+1} #### CAN ID={can_id}, data={data}, ISOTP Message Type={message_type}, ISOTP Fragment Count={fragment_count}")
+		output_log_line = False
+		if (args.can):
+			can_string = f"CAN ID={can_id}"
+			output_log_line = True
+			output_data = data
+		else:
+			can_string = ""
 
-		if (can_id == args.query_id):
-			# If its a single frame then process it, otherwise wait for the final frame that has fragment_count set
-			if(message_type == 0x00 or fragment_count != None):
+		command_string = ""
+		if(args.isotp and (message_type == 0x00 or fragment_count > 0)):
+			command = data[:2]
+			if (can_id == args.query_id):
+				if (command == "01"):
+					command_string = "REQUEST "
+				elif (command == '04'):
+					command_string = "OTHER_REQUEST"
+				else:
+					command_string = "UNKNOWN_MBE_MESSAGE"
+			elif (can_id == args.response_id):
+				if (command == '81'):
+					command_string = "RESPONSE"
+				elif (command == 'e4'):
+					command_string = "OTHER_RESPONSE"
+				else:
+					command_string = "UNKNOWN_MBE_MESSAGE"
+			isotp_string = f"ISOTP MBE Type={message_type}, Fragments={fragment_count}, {command_string} "
+			output_data = data
+			output_log_line = True
+		else:
+			isotp_string = ""
+		
+		if (output_log_line):
+			print(f"#[{i+1}]# {can_string}{isotp_string}:{output_data}")
+
+		if (args.mbe):
+			if (can_id == args.query_id):
+				# If its a single frame then process it, otherwise wait for the final frame that has fragment_count set
+				if(message_type == 0x00 or fragment_count > 0):
 					command = data[:2]
 					if(command == "01"): # A data request
 						pending_data_request_command = process_data_request_command(data, mappings)
 					elif(command == "04"):
-						print("This is a config request")
-		elif (can_id == args.response_id):
-			# If its a single frame then process it, otherwise wait for the final frame that has fragment_count set
-			if(message_type == 0x00 or fragment_count != None):
-				command = data[:2]
-				if(command == "81"): # A data response
-					process_data_response(data, pending_data_request_command, variables)
-				elif(command == "e4"):
-					print("This is a config response")
+						logging.debug("This is a config request")
+			elif (can_id == args.response_id):
+				# If its a single frame then process it, otherwise wait for the final frame that has fragment_count set
+				if(message_type == 0x00 or fragment_count > 0):
+					command = data[:2]
+					if(command == "81"): # A data response
+						process_data_response(data, pending_data_request_command, variables)
+					elif(command == "e4"):
+						logging.debug("This is a config response")
 
 	cap.close()
 
