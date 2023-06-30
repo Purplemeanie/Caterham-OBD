@@ -4,7 +4,7 @@ This repository contains code, packet captures and other files used to analyse t
 
 Catherhams use an ECU from MBE Systems (http://www.mbesystems.com) and the 9A4 ECU is the default ECU supplied by Caterham.
 
-SBD Motorsport (https://www.sbdmotorsport.co.uk/index.php/) supplies a Windows application called Easimap (https://www.sbdmotorsport.co.uk/index.php/products/index/4327), which can be used to access the 9A4 ECU through a CANbus to USB interface (https://www.sbdmotorsport.co.uk/index.php/products/index/2663)
+[SBD Motorsport](https://www.sbdmotorsport.co.uk) supplies a Windows application called [Easimap](https://sbdmotorsport.co.uk/product/easimap-6-pc-software-easimap-6-pc-software-download-for-free/) which can be used to access the 9A4 ECU through a [CANbus to USB interface](https://sbdmotorsport.co.uk/product/mbe-map-kit-3-can-basic-can-mapping-kit-for-mbe-can-based-ecus/)
 
 This repository provides tools to manipulate the Easimap configuration files (ec2 files) and to analyse captures of SocketCAN interactions between a monitoring application and the 9A4 ECU.
 
